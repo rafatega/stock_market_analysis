@@ -1,0 +1,88 @@
+{
+  "carteira": {
+    "nome": "Clear",
+    "moeda_base": "BRL",
+    "data_atualizacao": "2026-02-06"
+  },
+  "ativos": [
+    {
+      "ticker": "AUVP11",
+      "quantidade": 24,
+      "preco_medio": 101.90,
+      "moeda": "BRL",
+      "setor": "ETF"
+    },
+    {
+      "ticker": "BBAS3",
+      "quantidade": 309,
+      "preco_medio": 23.45,
+      "moeda": "BRL",
+      "setor": "Financeiro",
+      "subsetor": "Banco"
+    },
+    {
+      "ticker": "BBSE3",
+      "quantidade": 309,
+      "preco_medio": 23.45,
+      "moeda": "BRL",
+      "setor": "Financeiro",
+      "subsetor": "Seguros"
+    },
+    {
+      "ticker": "BRAP4",
+      "quantidade": 281,
+      "preco_medio": 18.70,
+      "moeda": "BRL",
+      "setor": "Financeiro",
+      "subsetor": "Banco"
+    },
+    {
+      "ticker": "BRSR6",
+      "quantidade": 494,
+      "preco_medio": 11.04,
+      "moeda": "BRL",
+      "setor": "Financeiro",
+      "subsetor": "Banco"
+    },
+    {
+      "ticker": "EGIE3",
+      "quantidade": 107,
+      "preco_medio": 25.39,
+      "moeda": "BRL",
+      "setor": "Energia",
+      "subsetor": "Geração de Energia"
+    },
+    {
+      "ticker": "ISAE4",
+      "quantidade": 102,
+      "preco_medio": 26.63,
+      "moeda": "BRL",
+      "setor": "Energia",
+      "subsetor": "Transmissão de Energia"
+    },
+    {
+      "ticker": "ITSA4",
+      "quantidade": 672,
+      "preco_medio": 8.75,
+      "moeda": "BRL",
+      "setor": "Financeiro",
+      "subsetor": "Holding"
+    },
+    {
+      "ticker": "ITUB4",
+      "quantidade": 75,
+      "preco_medio": 39.59,
+      "moeda": "BRL",
+      "setor": "Financeiro",
+      "subsetor": "Banco"
+    },
+    {
+      "ticker": "TAEE11",
+      "quantidade": 276,
+      "preco_medio": 34.52,
+      "moeda": "BRL",
+      "setor": "Energia",
+      "subsetor": "Transmissão de Energia"
+    }
+  ]
+}
