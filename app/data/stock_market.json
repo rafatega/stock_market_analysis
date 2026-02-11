@@ -6,13 +6,6 @@
   },
   "ativos": [
     {
-      "ticker": "AUVP11",
-      "quantidade": 24,
-      "preco_medio": 101.90,
-      "moeda": "BRL",
-      "setor": "ETF"
-    },
-    {
       "ticker": "BBAS3",
       "quantidade": 309,
       "preco_medio": 23.45,
@@ -23,7 +16,7 @@
     {
       "ticker": "BBSE3",
       "quantidade": 309,
-      "preco_medio": 23.45,
+      "preco_medio": 35.84,
       "moeda": "BRL",
       "setor": "Financeiro",
       "subsetor": "Seguros"
