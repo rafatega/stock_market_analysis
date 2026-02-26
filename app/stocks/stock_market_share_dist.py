@@ -3,6 +3,8 @@ import pandas as pd
 import yfinance as yf
 import json
 from pathlib import Path
+import numpy as np
+import plotly.express as px
 
 # streamlit run app/stocks/stock_market_share_dist.py
 
@@ -22,22 +24,25 @@ ativos = data["ativos"]
 
 # Adiciona .SA se for BRL
 for ativo in ativos:
-    if ativo["moeda"] == "BRL" and not ativo["ticker"].endswith(".SA"):
-        ativo["ticker"] += ".SA"
+    if ativo.get("moeda") == "BRL" and not str(ativo.get("ticker", "")).endswith(".SA"):
+        ativo["ticker"] = str(ativo["ticker"]) + ".SA"
 
 # DataFrame base
 df = pd.DataFrame(ativos)
 
+# Garante coluna meta (vem do JSON). Se não existir, cria com NaN
+df["meta"] = pd.to_numeric(df.get("meta", pd.Series([np.nan] * len(df))), errors="coerce")
+
 # Função para buscar preço atual
 @st.cache_data(show_spinner=False, ttl=300)
-def get_preco_atual(ticker):
+def get_preco_atual(ticker: str):
     try:
         stock = yf.Ticker(ticker)
         hist = stock.history(period="1d")
         if not hist.empty:
             return round(float(hist["Close"].iloc[-1]), 2)
         return None
-    except Exception as e:
+    except Exception:
         return None
 
 # Buscar preços
@@ -52,8 +57,10 @@ df["preco_atual"] = pd.to_numeric(df["preco_atual"], errors="coerce")
 # Cálculos
 df["valor_investido"] = (df["quantidade"] * df["preco_medio"]).round(2)
 total_investido = df["valor_investido"].sum()
+
 df["valor_atual"] = (df["quantidade"] * df["preco_atual"]).round(2)
 total_atual = df["valor_atual"].sum()
+
 df["lucro_prejuizo"] = (df["valor_atual"] - df["valor_investido"]).round(2)
 df["rendimento_%"] = ((df["lucro_prejuizo"] / df["valor_investido"]) * 100).fillna(0).round(2)
 df["participacao_%"] = ((df["valor_atual"] / total_atual) * 100).fillna(0).round(2)
@@ -77,25 +84,19 @@ with col1:
 with col2:
     st.metric("Valor Atual", f"R$ {total_atual:,.2f}")
 with col3:
-    st.metric(
-        "Rendimento Total",
-        f"{rendimento_total:.2f}%",
-        f"R$ {lucro_total:,.2f}"
-    )
+    st.metric("Rendimento Total", f"{rendimento_total:.2f}%", f"R$ {lucro_total:,.2f}")
 
 st.markdown("---")
 
 # ===== TABELA POR ATIVO =====
 st.subheader("Tabela por Ativo")
 
-# MANTER OS DADOS NUMÉRICOS - não converter para string
 df_display = df[[
-    "ticker", "quantidade", "preco_medio", "preco_atual", 
-    "valor_investido", "valor_atual", "lucro_prejuizo", 
+    "ticker", "quantidade", "preco_medio", "preco_atual",
+    "valor_investido", "valor_atual", "lucro_prejuizo",
     "rendimento_%", "participacao_%"
 ]].copy()
 
-# Configuração de formatação das colunas
 st.dataframe(
     df_display,
     use_container_width=True,
@@ -125,7 +126,6 @@ agrupado = df.groupby("setor", as_index=False).agg({
 agrupado["lucro_prejuizo"] = (agrupado["valor_atual"] - agrupado["valor_investido"]).round(2)
 agrupado["participacao_%"] = ((agrupado["valor_atual"] / total_atual) * 100).fillna(0).round(2)
 
-# MANTER NUMÉRICO TAMBÉM
 st.dataframe(
     agrupado,
     use_container_width=True,
@@ -141,8 +141,6 @@ st.dataframe(
 # ===== GRÁFICO DE PIZZA =====
 st.subheader("Distribuição por Setor")
 
-import plotly.express as px
-
 fig = px.pie(
     agrupado,
     values="valor_atual",
@@ -150,8 +148,7 @@ fig = px.pie(
     title="Participação por Setor",
     hole=0.3
 )
-
-fig.update_traces(textposition='inside', textinfo='percent+label')
+fig.update_traces(textposition="inside", textinfo="percent+label")
 st.plotly_chart(fig, use_container_width=True)
 
 # ===== REBALANCEAMENTO (METAS + APORTE) =====
@@ -160,11 +157,26 @@ st.header("Rebalanceamento por Metas (aportes)")
 
 st.caption(
     "Defina a meta de participação por ticker e o valor disponível (aporte). "
-    "O cálculo considera o valor atual da carteira + aporte e sugere quantas ações comprar/vender."
+    "O cálculo considera o valor atual da carteira + aporte e sugere quantas ações comprar/vender. "
+    "Se a soma das metas for menor que 100%, o restante vira CAIXA (para investir em outras empresas)."
 )
 
-# Segurança: remove linhas sem preço
-df_reb = df.dropna(subset=["preco_atual"]).copy()
+def _parse_tickers(txt: str) -> list[str]:
+    if not txt:
+        return []
+    parts = [p.strip().upper() for p in txt.split(",")]
+    return [p for p in parts if p]
+
+def _padroniza_ticker(t: str) -> str:
+    t = (t or "").strip().upper()
+    if not t:
+        return t
+    if t.endswith(".SA"):
+        return t
+    # regra prática: se não tem "." e tem número no fim (ex: CPFL4) → assume B3
+    if "." not in t and any(ch.isdigit() for ch in t):
+        return t + ".SA"
+    return t
 
 with st.expander("Configurações", expanded=True):
     aporte = st.number_input(
@@ -172,36 +184,98 @@ with st.expander("Configurações", expanded=True):
         value=0.0,
         step=100.0,
         format="%.2f",
+        key="aporte_reb",
     )
 
-    st.write("Metas de participação por ação (%):")
-
-    # Meta default = participação atual (pra facilitar o primeiro uso)
-    metas_base = pd.DataFrame({
-        "ticker": df_reb["ticker"],
-        "meta_%": df_reb["participacao_%"].fillna(0.0),
-    }).reset_index(drop=True)
-
-    # Editor de metas
-    metas_edit = st.data_editor(
-        metas_base,
-        use_container_width=True,
-        hide_index=True,
-        column_config={
-            "ticker": st.column_config.TextColumn("Ticker", disabled=True),
-            "meta_%": st.column_config.NumberColumn("Meta %", min_value=0.0, max_value=100.0, step=0.1, format="%.2f"),
-        },
-        key="metas_tickers",
+    novos_tickers_txt = st.text_input(
+        "Adicionar tickers na redistribuição (separados por vírgula) — ex.: CPFL3, CPFL4, AAPL, IVVB11",
+        value=st.session_state.get("novos_tickers_txt", ""),
+        help="Você pode incluir tickers que ainda não existem no JSON. Eles entram com quantidade 0.",
+        key="novos_tickers_txt",
     )
 
-# Normaliza metas (se não der 100%, a gente normaliza automaticamente)
+# 1) Base para rebalanceamento: carteira atual (com preço)
+df_reb = df.dropna(subset=["preco_atual"]).copy()
+
+# 2) Adiciona tickers novos ao df_reb (quantidade 0), se houver
+novos_tickers = [_padroniza_ticker(t) for t in _parse_tickers(novos_tickers_txt)]
+novos_tickers = [t for t in novos_tickers if t and (t not in set(df_reb["ticker"]))]
+
+if novos_tickers:
+    precos_novos = {t: get_preco_atual(t) for t in novos_tickers}
+
+    df_novos = pd.DataFrame({
+        "ticker": novos_tickers,
+        "quantidade": 0.0,
+        "preco_medio": 0.0,
+        "meta": 0.0,  # novo ticker começa sem meta (você ajusta no editor)
+        "preco_atual": [precos_novos[t] for t in novos_tickers],
+        "setor": "NOVO",
+        "moeda": carteira_info.get("moeda_base", "BRL"),
+    })
+
+    df_novos["valor_investido"] = 0.0
+    df_novos["valor_atual"] = (df_novos["quantidade"] * df_novos["preco_atual"]).fillna(0.0).round(2)
+    df_novos["lucro_prejuizo"] = 0.0
+    df_novos["rendimento_%"] = 0.0
+    df_novos["participacao_%"] = 0.0
+
+    df_reb = pd.concat([df_reb, df_novos], ignore_index=True)
+    df_reb = df_reb.dropna(subset=["preco_atual"]).copy()
+
+# 3) Editor de metas (meta vem do JSON; fallback para participação atual)
+st.write("Metas de participação por ação (%):")
+
+metas_base = pd.DataFrame({
+    "ticker": df_reb["ticker"],
+    "meta_%": df_reb["meta"].fillna(df_reb["participacao_%"]).fillna(0.0),
+}).reset_index(drop=True)
+
+metas_edit = st.data_editor(
+    metas_base,
+    use_container_width=True,
+    hide_index=True,
+    column_config={
+        "ticker": st.column_config.TextColumn("Ticker", disabled=True),
+        "meta_%": st.column_config.NumberColumn(
+            "Meta %",
+            min_value=0.0,
+            max_value=100.0,
+            step=0.01,
+            format="%.2f",
+        ),
+    },
+    key="metas_tickers",
+)
+
+# Garantir numérico
+metas_edit = metas_edit.copy()
+metas_edit["meta_%"] = pd.to_numeric(metas_edit["meta_%"], errors="coerce").fillna(0.0)
+
 metas_sum = float(metas_edit["meta_%"].sum())
 if metas_sum <= 0:
     st.error("A soma das metas precisa ser maior que 0%.")
     st.stop()
 
-metas_edit = metas_edit.copy()
-metas_edit["meta_norm"] = metas_edit["meta_%"] / metas_sum  # soma = 1.0
+# Regras:
+# - metas < 100%: NÃO normaliza; sobra vira CAIXA
+# - metas = 100%: ok
+# - metas > 100%: normaliza para 100%
+EPS = 1e-9
+if metas_sum < 100.0 - EPS:
+    metas_edit["meta_norm"] = metas_edit["meta_%"] / 100.0  # soma < 1.0
+    caixa_meta_frac = 1.0 - float(metas_edit["meta_norm"].sum())
+    st.info(
+        f"Metas somam {metas_sum:.2f}%. "
+        f"O restante ({(100.0 - metas_sum):.2f}%) ficará em CAIXA."
+    )
+elif metas_sum > 100.0 + EPS:
+    metas_edit["meta_norm"] = metas_edit["meta_%"] / metas_sum  # soma = 1.0
+    caixa_meta_frac = 0.0
+    st.warning(f"Metas somam {metas_sum:.2f}% (>100%). Normalizei para 100%.")
+else:
+    metas_edit["meta_norm"] = metas_edit["meta_%"] / 100.0
+    caixa_meta_frac = 0.0
 
 # Junta metas no dataframe
 df_reb = df_reb.merge(metas_edit[["ticker", "meta_%", "meta_norm"]], on="ticker", how="left")
@@ -210,10 +284,12 @@ df_reb["meta_norm"] = df_reb["meta_norm"].fillna(0.0)
 
 # Total atual + aporte
 total_pos_aporte = float(total_atual + aporte)
-
 if total_pos_aporte <= 0:
     st.error("Total pós-aporte ficou <= 0. Ajuste o aporte ou revise a carteira.")
     st.stop()
+
+# Caixa alvo por metas (<100%)
+caixa_meta_valor = round(total_pos_aporte * caixa_meta_frac, 2)
 
 # Valores alvo em R$
 df_reb["valor_alvo"] = (df_reb["meta_norm"] * total_pos_aporte).round(2)
@@ -221,44 +297,45 @@ df_reb["valor_alvo"] = (df_reb["meta_norm"] * total_pos_aporte).round(2)
 # Quanto falta/excede em R$
 df_reb["delta_valor"] = (df_reb["valor_alvo"] - df_reb["valor_atual"]).round(2)
 
-# Quantidade sugerida (inteira) - aproxima para o mais próximo
-# Compra: arredonda para baixo se quiser ser conservador (não estourar caixa)
-# Venda: arredonda para cima em magnitude (pra bater mais a meta)
-import numpy as np
-
 def sugerir_qtd(delta_valor: float, preco: float) -> int:
-    if preco <= 0 or np.isnan(preco) or np.isnan(delta_valor):
+    if preco is None or preco <= 0 or np.isnan(preco) or np.isnan(delta_valor):
         return 0
     qtd_float = delta_valor / preco
     if qtd_float >= 0:
-        return int(np.floor(qtd_float))  # compra conservadora
-    else:
-        return int(np.ceil(qtd_float))   # venda conservadora (mais perto da meta)
+        return int(np.floor(qtd_float))   # compra conservadora
+    return int(np.ceil(qtd_float))        # venda conservadora
 
 df_reb["qtd_sugerida"] = df_reb.apply(lambda r: sugerir_qtd(r["delta_valor"], r["preco_atual"]), axis=1)
 
-df_reb["acao"] = np.where(df_reb["qtd_sugerida"] > 0, "COMPRAR",
-                   np.where(df_reb["qtd_sugerida"] < 0, "VENDER", "OK"))
+df_reb["acao"] = np.where(
+    df_reb["qtd_sugerida"] > 0, "COMPRAR",
+    np.where(df_reb["qtd_sugerida"] < 0, "VENDER", "OK")
+)
 
 df_reb["valor_estimado_ordem"] = (df_reb["qtd_sugerida"] * df_reb["preco_atual"]).round(2)
 
 # Caixa usado (compras - vendas)
 caixa_usado = float(df_reb["valor_estimado_ordem"].sum())
-restante = float(aporte - caixa_usado)
+
+# Restante = (aporte - caixa_usado) + caixa_meta_valor
+restante = float(aporte - caixa_usado + caixa_meta_valor)
 
 # Carteira pós-ordens (estimada)
 df_reb["quantidade_pos"] = (df_reb["quantidade"] + df_reb["qtd_sugerida"]).clip(lower=0)
 df_reb["valor_pos"] = (df_reb["quantidade_pos"] * df_reb["preco_atual"]).round(2)
+
+# Total pós estimado inclui o caixa restante
 total_pos_estimado = float(df_reb["valor_pos"].sum() + restante)
 
 df_reb["participacao_pos_%"] = ((df_reb["valor_pos"] / total_pos_estimado) * 100).fillna(0).round(2)
 
 # KPIs
-c1, c2, c3, c4 = st.columns(4)
+c1, c2, c3, c4, c5 = st.columns(5)
 c1.metric("Total atual", f"R$ {total_atual:,.2f}")
 c2.metric("Aporte", f"R$ {aporte:,.2f}")
-c3.metric("Caixa usado (estim.)", f"R$ {caixa_usado:,.2f}")
-c4.metric("Caixa restante (estim.)", f"R$ {restante:,.2f}")
+c3.metric("Caixa alvo (metas < 100%)", f"R$ {caixa_meta_valor:,.2f}")
+c4.metric("Caixa usado (estim.)", f"R$ {caixa_usado:,.2f}")
+c5.metric("Caixa restante (estim.)", f"R$ {restante:,.2f}")
 
 # Tabela de sugestões
 st.subheader("Sugestão de ordens para bater as metas")
@@ -296,8 +373,12 @@ st.dataframe(
 )
 
 # Avisos úteis
-if abs(metas_sum - 100.0) > 0.01:
-    st.info(f"As metas somavam {metas_sum:.2f}%. Eu normalizei automaticamente para 100%.")
-
-if abs(restante) > 1e-6:
+if metas_sum > 100.0 + EPS:
+    st.info(f"As metas somavam {metas_sum:.2f}%. Normalizei automaticamente para 100%.")
+elif metas_sum < 100.0 - EPS:
+    st.caption(
+        "Parte do dinheiro ficará em CAIXA porque a soma das metas é menor que 100%. "
+        "Além disso, pode sobrar um valor extra por arredondamento de quantidade inteira."
+    )
+elif abs(restante) > 1e-6:
     st.caption("O 'caixa restante' aparece por causa do arredondamento para quantidade inteira de ações.")
