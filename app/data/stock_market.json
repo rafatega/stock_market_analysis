@@ -15,7 +15,7 @@
     },
     {
       "ticker": "BBSE3",
-      "quantidade": 309,
+      "quantidade": 293,
       "preco_medio": 35.84,
       "moeda": "BRL",
       "setor": "Financeiro",
@@ -23,16 +23,16 @@
     },
     {
       "ticker": "BRAP4",
-      "quantidade": 281,
-      "preco_medio": 18.70,
+      "quantidade": 339,
+      "preco_medio": 19.77,
       "moeda": "BRL",
       "setor": "Financeiro",
       "subsetor": "Banco"
     },
     {
       "ticker": "BRSR6",
-      "quantidade": 494,
-      "preco_medio": 11.04,
+      "quantidade": 591,
+      "preco_medio": 12.25,
       "moeda": "BRL",
       "setor": "Financeiro",
       "subsetor": "Banco"
@@ -55,8 +55,8 @@
     },
     {
       "ticker": "ITSA4",
-      "quantidade": 672,
-      "preco_medio": 8.75,
+      "quantidade": 820,
+      "preco_medio": 9.88,
       "moeda": "BRL",
       "setor": "Financeiro",
       "subsetor": "Holding"
@@ -71,8 +71,8 @@
     },
     {
       "ticker": "TAEE11",
-      "quantidade": 276,
-      "preco_medio": 34.52,
+      "quantidade": 332,
+      "preco_medio": 36.11,
       "moeda": "BRL",
       "setor": "Energia",
       "subsetor": "Transmissão de Energia"
