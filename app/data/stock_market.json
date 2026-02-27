@@ -7,7 +7,7 @@
   "ativos": [
     {
       "ticker": "BBAS3",
-      "quantidade": 309,
+      "quantidade": 182,
       "preco_medio": 23.45,
       "moeda": "BRL",
       "setor": "Financeiro",
@@ -16,8 +16,8 @@
     },
     {
       "ticker": "BBSE3",
-      "quantidade": 293,
-      "preco_medio": 35.84,
+      "quantidade": 499,
+      "preco_medio": 35.49,
       "moeda": "BRL",
       "setor": "Financeiro",
       "subsetor": "Seguros",
@@ -25,8 +25,8 @@
     },
     {
       "ticker": "BRAP4",
-      "quantidade": 339,
-      "preco_medio": 19.77,
+      "quantidade": 396,
+      "preco_medio": 20.49,
       "moeda": "BRL",
       "setor": "Financeiro",
       "subsetor": "Banco",
@@ -34,8 +34,8 @@
     },
     {
       "ticker": "BRSR6",
-      "quantidade": 591,
-      "preco_medio": 12.25,
+      "quantidade": 691,
+      "preco_medio": 13.16,
       "moeda": "BRL",
       "setor": "Financeiro",
       "subsetor": "Banco",
@@ -43,7 +43,7 @@
     },
     {
       "ticker": "EGIE3",
-      "quantidade": 107,
+      "quantidade": 63,
       "preco_medio": 25.39,
       "moeda": "BRL",
       "setor": "Energia",
@@ -52,7 +52,7 @@
     },
     {
       "ticker": "ISAE4",
-      "quantidade": 102,
+      "quantidade": 60 ,
       "preco_medio": 26.63,
       "moeda": "BRL",
       "setor": "Energia",
@@ -61,8 +61,8 @@
     },
     {
       "ticker": "ITSA4",
-      "quantidade": 820,
-      "preco_medio": 9.88,
+      "quantidade": 960,
+      "preco_medio": 10.56,
       "moeda": "BRL",
       "setor": "Financeiro",
       "subsetor": "Holding",
@@ -70,8 +70,8 @@
     },
     {
       "ticker": "ITUB4",
-      "quantidade": 75,
-      "preco_medio": 39.59,
+      "quantidade": 87,
+      "preco_medio": 40.67,
       "moeda": "BRL",
       "setor": "Financeiro",
       "subsetor": "Banco",
@@ -79,7 +79,7 @@
     },
     {
       "ticker": "TAEE11",
-      "quantidade": 332,
+      "quantidade": 195,
       "preco_medio": 36.11,
       "moeda": "BRL",
       "setor": "Energia",
@@ -88,8 +88,8 @@
     },
     {
       "ticker": "CXSE3",
-      "quantidade": 0,
-      "preco_medio": 0,
+      "quantidade": 473,
+      "preco_medio": 18.54,
       "moeda": "BRL",
       "setor": "Financeiro",
       "subsetor": "Banco",
@@ -97,8 +97,8 @@
     },
     {
       "ticker": "CPFE3",
-      "quantidade": 332,
-      "preco_medio": 36.11,
+      "quantidade": 60,
+      "preco_medio": 51.42,
       "moeda": "BRL",
       "setor": "Energia",
       "subsetor": "Geração de Energia",
